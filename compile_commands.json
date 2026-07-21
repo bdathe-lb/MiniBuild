@@ -1,0 +1,40 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-pedantic",
+      "-std=c++17",
+      "-O2",
+      "-DNDEBUG",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/release/main.o",
+      "src/main.cpp"
+    ],
+    "directory": "/home/bdathe/projects/mini-build",
+    "file": "/home/bdathe/projects/mini-build/src/main.cpp",
+    "output": "/home/bdathe/projects/mini-build/build/release/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-pedantic",
+      "-std=c++17",
+      "-O2",
+      "-DNDEBUG",
+      "-Iinclude",
+      "-c",
+      "-o",
+      "build/release/task.o",
+      "src/task.cpp"
+    ],
+    "directory": "/home/bdathe/projects/mini-build",
+    "file": "/home/bdathe/projects/mini-build/src/task.cpp",
+    "output": "/home/bdathe/projects/mini-build/build/release/task.o"
+  }
+]

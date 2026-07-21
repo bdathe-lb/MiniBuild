@@ -1,0 +1,5 @@
+#ifndef MINI_BUILD_TASK_GRAPH_H
+#define MINI_BUILD_TASK_GRAPH_H
+
+
+#endif // !MINI_BUILD_TASK_GRAPH_H
