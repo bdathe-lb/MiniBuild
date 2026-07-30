@@ -54,9 +54,14 @@ public:
   Task(Task&&) = delete;
   Task& operator=(Task&&) = delete;
 
-  [[nodiscard]] TaskID GetTaskID() const noexcept;
-  [[nodiscard]] TaskState GetTaskState() const noexcept;
-  [[nodiscard]] const std::string& GetTaskName() const noexcept;
+  [[nodiscard]] 
+  TaskID GetTaskID() const noexcept;
+
+  [[nodiscard]] 
+  TaskState GetTaskState() const noexcept;
+
+  [[nodiscard]] 
+  const std::string& GetTaskName() const noexcept;
 
   void Execute();
 };
