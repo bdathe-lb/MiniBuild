@@ -1,0 +1,18 @@
+# Ignore everything by default
+*
+
+# Allow Git to traverse directories
+!**/
+
+# Whitelist project files
+!.gitignore
+!.gitkeep
+!*.cpp
+!*.h
+!*.hpp
+!*.tpp
+!Makefile
+!compile_commands.json
+
+# Always exclude local cache
+/.cache/
