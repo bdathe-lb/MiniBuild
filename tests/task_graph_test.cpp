@@ -2,8 +2,6 @@
 #include "task_graph.h"
 #include "test_framework.h"
 
-#include <type_traits>
-
 namespace {
 
 using minibuild::Task;
