@@ -46,7 +46,7 @@ TaskID Task::GetTaskID() const noexcept {
  * @return The current task state.
  */
 TaskState Task::GetTaskState() const noexcept {
-  return state_;
+  return state_.load();
 }
 
 /**
@@ -66,20 +66,21 @@ void Task::Execute() {
   // Maintain the state machine's state to prevent redundant execution
   // Pending -> Running -> Finished/Failed
 
-  if (state_ != TaskState::Pending) {
-    throw std::logic_error("Task can only be executed from Pending state");
-  }
+  TaskState expected = TaskState::Pending;
+  const bool success = state_.compare_exchange_strong(expected, TaskState::Running);
 
-  state_ = TaskState::Running;
+  if (!success) {
+     throw std::logic_error("Task can only be executed from Pending state");
+  }
 
   try {
     action_();
-    state_ = TaskState::Finished;
+    state_.store(TaskState::Finished);
   } catch (...) {
-    state_ = TaskState::Failed;
-    throw; 
+    state_.store(TaskState::Failed);
+    throw;
   }
 }
 
-}
+} // namespace minibuild
 

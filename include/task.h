@@ -5,6 +5,7 @@
 #include <ostream>
 #include <cstdint>
 #include <string>
+#include <atomic>
 
 namespace minibuild {
 
@@ -35,7 +36,7 @@ private:
   std::string name_;
 
   /// Lifecycles
-  TaskState state_{TaskState::Pending};
+  std::atomic<TaskState> state_{TaskState::Pending};
 
   /// Task executes the specific task
   TaskAction action_;

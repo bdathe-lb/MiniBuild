@@ -1,17 +1,21 @@
 #include "task.h"
 #include "test_framework.h"
 
+#include <atomic>
 #include <cstddef>
 #include <functional>
+#include <future>
 #include <sstream>
 #include <stdexcept>
 #include <string>
-#include <type_traits>
+#include <thread>
+#include <vector>
 
 namespace {
 
 using minibuild::Task;
 using minibuild::TaskState;
+using namespace std::chrono_literals;
 
 static_assert(!std::is_default_constructible_v<Task>);
 static_assert(!std::is_copy_constructible_v<Task>);
@@ -130,4 +134,58 @@ TEST_CASE("Task: stream output") {
         "Task [9] {CompileStream} - State: Pending");
 }
 
-}  // namespace
+TEST_CASE("Task: concurrent Execute runs action only once") {
+  std::atomic<int> execution_count{0};
+  std::atomic<int> success_count{0};
+  std::atomic<int> logic_error_count{0};
+  std::atomic<std::size_t> ready_count{0};
+
+  constexpr std::size_t thread_count = 2;
+
+  // satrt signal
+  std::promise<void> start_promise;
+  std::shared_future<void> start_future = 
+    start_promise.get_future().share();
+
+  Task task(1, "A", [&] {
+    ++ execution_count;
+
+    std::this_thread::sleep_for(50ms);
+  });
+
+  std::vector<std::thread> threads;
+  threads.reserve(thread_count);
+
+  for (std::size_t i = 0; i < thread_count; ++ i) {
+    threads.emplace_back( [&] {
+      ++ ready_count;
+
+      start_future.wait();
+
+      try {
+        task.Execute();
+        ++ success_count;
+      } catch (const std::logic_error&) {
+        ++ logic_error_count;
+      }
+    });
+  }
+
+  while (ready_count.load() != thread_count) {
+    std::this_thread::yield();
+  }
+
+  start_promise.set_value();
+
+  for (auto& thread : threads) {
+    if (thread.joinable()) 
+      thread.join();
+  }
+
+  CHECK(execution_count == 1);
+  CHECK(success_count == 1);
+  CHECK(logic_error_count == 1);
+  CHECK(task.GetTaskState() == TaskState::Finished);
+}
+
+} // namespace
