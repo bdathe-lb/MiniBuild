@@ -7,12 +7,25 @@ LDFLAGS       :=
 MODE ?= release
 
 ifeq ($(MODE), debug)
-	CXXFLAGS  := $(BASE_CXXFLAGS) -g -O0 -fno-omit-frame-pointer \
-	             -fsanitize=address -DDEBUG
+	CXXFLAGS := $(BASE_CXXFLAGS) \
+							-g \
+							-O0 \
+							-fno-omit-frame-pointer \
+							-fsanitize=address \
+							-DDEBUG
 	DIR_SUFFIX := debug
+else ifeq($(MODE), tsan)
+	CXXFLAGS = $(BASE_CXXFLAGS) \
+						 -g \
+						 -O1 \
+						 -fno-omit-frame-pointer \
+						 -fsanitize=thread \
+						 -DDEBUG
+	DIR_SUFFIX := tsan
 else
-	CXXFLAGS  := $(BASE_CXXFLAGS) -O2 -DNDEBUG
-	DIR_SUFFIX := release
+	CXXFLAGS := $(BASE_CXXFLAGS) \
+							-O2 \
+							-DNDEBUG
 endif
 
 # Directory setup
@@ -58,6 +71,9 @@ test: $(TEST_TARGET)
 test-debug:
 	@$(MAKE) MODE=debug test
 
+test-tsan:
+	@$(MAKE) MODE=tsan test
+
 # -------------------- Link rules --------------------
 
 $(TARGET): $(APP_OBJS) | dirs
@@ -93,4 +109,4 @@ clean-all:
 
 -include $(DEPS)
 
-.PHONY: all run test test-debug clean clean-all dirs
+.PHONY: all run test test-debug test-tsan clean clean-all dirs
