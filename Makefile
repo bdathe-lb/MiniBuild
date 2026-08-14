@@ -14,7 +14,7 @@ ifeq ($(MODE), debug)
 							-fsanitize=address \
 							-DDEBUG
 	DIR_SUFFIX := debug
-else ifeq($(MODE), tsan)
+else ifeq ($(MODE), tsan)
 	CXXFLAGS = $(BASE_CXXFLAGS) \
 						 -g \
 						 -O1 \
