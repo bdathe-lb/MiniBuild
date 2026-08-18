@@ -7,11 +7,13 @@
 #include <memory>
 #include <stdexcept>
 #include <thread>
+#include <unordered_set>
 #include <vector>
 
 namespace {
 
 using minibuild::Task;
+using minibuild::TaskID;
 using minibuild::TaskState;
 using minibuild::ThreadPool;
 
@@ -300,6 +302,120 @@ TEST_CASE("ThreadPool: destructor performs graceful shutdown") {
   CHECK(count.load() == 2);
   CHECK(a.GetTaskState() == TaskState::Finished);
   CHECK(b.GetTaskState() == TaskState::Finished);
+}
+
+TEST_CASE("ThreadPool: completed task is reported") {
+  ThreadPool pool(1);
+
+  Task task(1, "task", [] {});
+
+  CHECK(pool.Submit(&task));
+
+  Task* completed = nullptr;
+
+  const bool popped = pool.WaitAndPopCompleted(completed);
+
+  pool.Stop();
+
+  CHECK(popped);
+  CHECK(completed == &task);
+  CHECK(task.GetTaskState() == TaskState::Finished);
+}
+
+
+TEST_CASE("ThreadPool: failed task is reported as completed") {
+  ThreadPool pool(1);
+
+  Task task(1, "failed", [] {
+    throw std::runtime_error("boom");
+  });
+
+  CHECK(pool.Submit(&task));
+
+  Task* completed = nullptr;
+  const bool popped = pool.WaitAndPopCompleted(completed);
+
+  pool.Stop();
+
+  CHECK(popped);
+  CHECK(completed == &task);
+  CHECK(task.GetTaskState() == TaskState::Failed);
+}
+
+TEST_CASE("ThreadPool: multiple tasks produce exactly one completion each") {
+  constexpr std::size_t task_count = 50;
+  constexpr std::size_t worker_count = 5;
+
+  ThreadPool pool(worker_count);
+
+  std::vector<std::unique_ptr<Task>> tasks;
+  tasks.reserve(task_count);
+
+  for (std::size_t i = 0; i < task_count; ++i) {
+    tasks.push_back(
+        std::make_unique<Task>(
+            i + 1,
+            "task",
+            [] {}));
+  }
+
+  // Submit all tasks, not just worker_count tasks.
+  for (std::size_t i = 0; i < task_count; ++i) {
+    CHECK(pool.Submit(tasks[i].get()));
+  }
+
+  // Drain all submitted work and close completed_queue_.
+  pool.Stop();
+
+  std::unordered_set<TaskID> completed_ids;
+  std::size_t completion_count = 0;
+
+  Task* completed = nullptr;
+
+  while (pool.WaitAndPopCompleted(completed)) {
+    ++completion_count;
+
+    if (completed != nullptr) {
+      completed_ids.insert(completed->GetTaskID());
+    }
+  }
+
+  CHECK(completion_count == task_count);
+  CHECK(completed_ids.size() == task_count);
+
+  for (const auto& task : tasks) {
+    CHECK(
+        task->GetTaskState() ==
+        TaskState::Finished);
+  }
+}
+
+TEST_CASE("ThreadPool: `Stop` closes completion queue after draining workers") {
+  ThreadPool pool(2);
+
+  Task a(1, "A", [] {});
+  Task b(2, "B", [] {});
+  Task c(3, "C", [] {});
+
+  CHECK(pool.Submit(&a));
+  CHECK(pool.Submit(&b));
+  CHECK(pool.Submit(&c));
+
+  pool.Stop();
+
+  std::vector<Task*> completed;
+
+  Task* task = nullptr;
+
+  while (pool.WaitAndPopCompleted(task)) {
+    completed.push_back(task);
+  }
+
+  CHECK(completed.size() == 3);
+
+  CHECK(a.GetTaskState() == TaskState::Finished);
+  CHECK(b.GetTaskState() == TaskState::Finished);
+  CHECK(c.GetTaskState() == TaskState::Finished);
 }
 
 }  // namespace

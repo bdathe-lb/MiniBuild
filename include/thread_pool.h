@@ -14,6 +14,8 @@ namespace minibuild {
 class ThreadPool {
 private:
   ThreadSafeQueue<Task*> task_queue_;
+  ThreadSafeQueue<Task*> completed_queue_;
+
   std::vector<std::thread> workers_;
   std::once_flag stop_once_;
 
@@ -38,6 +40,10 @@ public:
   /// Submit a task to the thread pool
   [[nodiscard]]
   bool Submit(Task* task);
+
+  /// Wait for task completion and enqueue it into the completion queue
+  [[nodiscard]]
+  bool WaitAndPopCompleted(Task*& task);
 
   /// Stop thread pool
   void Stop();

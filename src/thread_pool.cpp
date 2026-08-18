@@ -31,6 +31,8 @@ ThreadPool::ThreadPool(std::size_t worker_count) {
       }
     }
 
+    completed_queue_.Close();
+
     throw;
   }
 }
@@ -54,6 +56,16 @@ bool ThreadPool::Submit(Task* task) {
   }
 
   return task_queue_.Push(task);
+}
+
+/**
+ * Waits for and removes a completed task from the completed queue if available.
+ *
+ * @param task Pointer to the task object to be popped from the completed queue.
+ * @return True if a completed task was found and popped; false otherwise.
+ */
+bool ThreadPool::WaitAndPopCompleted(Task*& task) {
+  return completed_queue_.WaitAndPop(task);
 }
 
 /**
@@ -91,6 +103,11 @@ void ThreadPool::WorkerLoop() {
       // Task::Execute() has already marked the task as Failed.
       // Keep the worker alive and continue processing tasks.
     }
+
+    const bool pushed = completed_queue_.Push(task);
+    if (!pushed) {
+      break;
+    }
   }
 }
 
@@ -107,6 +124,10 @@ void ThreadPool::Stop() {
       if (worker.joinable())
         worker.join();
     }
+
+    // All workers have disappeared;  
+    // no new completion can be generated.
+    completed_queue_.Close();
   });
 }
 } // namespace minibuild
